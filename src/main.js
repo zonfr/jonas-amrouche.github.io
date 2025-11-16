@@ -39,7 +39,7 @@ scene.add(torus);
 // scene.add(button);
 
 const loader = new GLTFLoader();
-const loading = await loader.loadAsync( 'public/intro.gltf' );
+const loading = await loader.loadAsync( '/intro.gltf' );
 const loadingMesh = loading.scene
 loadingMesh.material = new THREE.MeshStandardMaterial();
 scene.add( loadingMesh );
