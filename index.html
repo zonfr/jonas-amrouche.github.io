@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="src/favicon.svg" />
+    <title>Jonas Amrouche</title>
+  </head>
+  <body>
+    <canvas id="bg"></canvas>
+    <p style="visibility: hidden" id="buttonFragmentShader">
+      uniform float uTime;
+
+      varying vec2 vUv;
+      varying vec3 vPosition;
+
+      void main(){
+        vec3 final = uBaseColor;
+        gl_FragColor = vec4(final, 1.0);
+      }
+      
+    </p>
+    <p style="visibility: hidden" id="buttonVertexShader">
+      uniform float uTime;
+
+      varying vec3 vPosition;
+      varying vec2 vUv;
+
+      void main(){
+        vPosition = position;
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+      }
+    </p>
+    
+    <script type="module" src="/src/main.js"></script>
+
+  </body>
+
+  
+</html>
