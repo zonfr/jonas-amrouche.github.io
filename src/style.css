@@ -3,3 +3,45 @@ canvas {
   top:0;
   left:0;
 }
+
+@font-face {
+  font-family: 'Steps-Mono-Thin';
+  src: url('/src/Steps-Mono-Thin.woff2') format('woff2');
+}
+
+#flat-render {
+  position : absolute;
+  top : 0px;
+  left : 0px;
+}
+
+#enter-button {
+  background-color: black;
+  border: 5px solid white;
+}
+
+#enter-button:hover {
+  background-color: white;
+  border: 5px solid white;
+}
+
+#enter-text{
+  font-family: 'Steps-Mono-Thin';
+  margin: auto;
+  color: rgb(255, 255, 255);
+  font-size: 300%;
+  text-shadow : 0 0 8px white, 0 0 24px rgba(255, 255, 255, 0.199);
+}
+div{
+  position: fixed;
+
+}
+
+#name-text{
+  margin: auto;
+  font-family: 'Steps-Mono-Thin';
+  text-align: center;
+  text-shadow : 0 0 8px white, 0 0 24px rgba(255, 255, 255, 0.199);
+  color: rgb(255, 255, 255);
+  font-size: 600%;
+}
