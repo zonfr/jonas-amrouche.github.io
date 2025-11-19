@@ -159,7 +159,7 @@ const bloomPass = new UnrealBloomPass( resolution, 1, 0.4, 0.7 );
 composer.addPass( bloomPass );
 
 // Dev only
-let skipIntro = true;
+let skipIntro = false;
 if (skipIntro){
   camera.position.set(0, 0, -140);
   torus.visible = false;
