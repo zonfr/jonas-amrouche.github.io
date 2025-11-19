@@ -37,7 +37,7 @@ div{
 
 }
 
-#name-text{
+p{
   margin: auto;
   font-family: 'Steps-Mono-Thin';
   text-align: center;
@@ -45,3 +45,4 @@ div{
   color: rgb(255, 255, 255);
   font-size: 600%;
 }
+

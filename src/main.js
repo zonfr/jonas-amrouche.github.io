@@ -7,8 +7,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { gsap } from 'gsap/gsap-core';
-import { mix } from 'three/tsl';
-
+ 
 let introDone = false;
 let screenTouched = false;
 let scrollPercent = 0;
@@ -37,15 +36,34 @@ scene.add(enterTextLabel);
 enterTextLabel.position.set(0, -3, 2);
 enterTextLabel.scale.set(0.005, 0.005, 0.005);
 
+// newProject("FireLive : audio mixing and live production software", "src/firelive_screen1.jpg", 0, -140)
+
+function newProject(title, imgPath, x, z){
+  const titleP = document.createElement("p");
+  titleP.textContent = title;
+  titleP.id = "project-title";
+  const TitleLabel = new CSS3DObject(titleP);
+  scene.add(TitleLabel);
+  TitleLabel.position.set(x, 2, z);
+  TitleLabel.scale.set(0.005, 0.005, 0.005);
+  const projectI = document.createElement("img");
+  projectI.src = imgPath;
+  projectI.id = "project-video";
+  const projectImg = new CSS3DObject(projectI);
+  scene.add(projectImg);
+  projectImg.position.set(x, 0, z);
+  projectImg.scale.set(0.002, 0.002, 0.002);
+}
+
 // Name Label
-const NameP = document.createElement("p");
-NameP.setHTMLUnsafe("Jonas<br>Amrouche");
-NameP.id = "name-text";
-const NameLabel = new CSS3DObject(NameP);
-scene.add(NameLabel);
-NameLabel.position.set(0, 0, -150);
-NameLabel.scale.set(0.01, 0.01, 0.01);
-NameLabel.visible = false;
+// const NameP = document.createElement("p");
+// NameP.textContent = "Jonas Amrouche";
+// NameP.id = "name-text";
+// const NameLabel = new CSS3DObject(NameP);
+// scene.add(NameLabel);
+// NameLabel.position.set(0, 3, -150);
+// NameLabel.scale.set(0.01, 0.01, 0.01);
+// NameLabel.visible = false;
 
 // Create glowy quad-ring
 const geometry = new THREE.RingGeometry( 2, 3, 4 );
@@ -116,7 +134,7 @@ const loading_anim = play_clip(animLoaded, mixer, "loading", false);
 
 // Pointless Point light
 const pointLight = new THREE.PointLight(0xffffff, 100)
-pointLight.position.set(0, 0, 3)//3
+pointLight.position.set(0, 0, 3)
 scene.add(pointLight);
 
 // Add post-processing
@@ -131,12 +149,14 @@ composer.addPass( bloomPass );
 let skipIntro = false;
 if (skipIntro){
   camera.position.set(0, 0, -140);
+  camera.fov = 100;
+  camera.updateProjectionMatrix();
   torus.visible = false;
   mask.visible = false;
   Windows.visible = true;
   pageGrid.material.uniforms.uOpacity = {value : 1.0}
   introDone = true;
-  document.querySelector('body').style.height = "5000px";
+  document.querySelector('body').style.height = "7000px";
   window.scrollTo(0, 0);
 }
 
@@ -237,14 +257,14 @@ function enter(){
                   ease: "power2.inOut",
                   onComplete: () => {
                     
-                    NameLabel.visible = true;
+                    // NameLabel.visible = true;
                     gsap.to(pageGrid.material.uniforms.uOpacity, {
                       value: 1.0,
                       duration: 2.0,
                       ease: "power2.In",
                       onComplete: () => {
                         introDone = true;
-                        document.querySelector('body').style.height = "5000px";
+                        document.querySelector('body').style.height = "7000px";
                         window.scrollTo(0, 0);
                       }
                     });
@@ -271,6 +291,7 @@ function updateSreenSize(){
 }
 
 window.addEventListener("click", () => {
+  if (skipIntro){ return; }
     const context = listener.context;
 
     if (context.state === "suspended") {
