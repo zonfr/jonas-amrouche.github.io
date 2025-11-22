@@ -5,6 +5,9 @@ import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { gsap } from 'gsap/gsap-core';
  
@@ -29,7 +32,7 @@ updateSreenSize();
 
 // Enter Text Label
 const enterTextP = document.createElement("p");
-enterTextP.textContent = "click to enter";
+enterTextP.textContent = "click to enter my portfolio";
 enterTextP.id = "enter-text";
 const enterTextLabel = new CSS3DObject(enterTextP);
 scene.add(enterTextLabel);
@@ -40,29 +43,6 @@ enterTextLabel.scale.set(0.005, 0.005, 0.005);
 // newText("Jonas Amrouche", "name-text", 0, 0, -147, 0.01)
 // newText("Developper", "dev-title-text", 0, -2, -149, 0.01)
 // newText("Interactive Experience", "dev-title-text", 0, 2, -149, 0.01)
-
-// Project Tabs
-newProject("FireLive : audio mixing and live production software", "/firelive_screen1.jpg", 0, -149)
-
-function newProject(title, imgPath, x, z){
-  const titleP = document.createElement("p");
-  titleP.textContent = title;
-  titleP.id = "project-title";
-  titleP.setAttribute('class', "project-ui");
-  const TitleLabel = new CSS3DObject(titleP);
-  scene.add(TitleLabel);
-  TitleLabel.position.set(x+7, 2, z);
-  TitleLabel.scale.set(0.005, 0.005, 0.005);
-  const projectI = document.createElement("img");
-  projectI.src = imgPath;
-  projectI.id = "project-video";
-  projectI.setAttribute('class', "project-ui");
-  const projectImg = new CSS3DObject(projectI);
-  scene.add(projectImg);
-  projectImg.position.set(x-1.8, 0.2, z+0.5);
-  projectImg.scale.set(0.004, 0.004, 0.004);
-  projectImg.rotation.set(0, Math.PI/16.0, 0);
-}
 
 function newText(text, id, x, y, z, size){
   const p = document.createElement("p");
@@ -85,7 +65,7 @@ torus.position.set(0, 0, -2)
 scene.add(torus);
 
 // Create animated wireframe tunel
-const pageGridGeometry = new THREE.CylinderGeometry( 5, 5, 25, 50, 100, true);
+const pageGridGeometry = new THREE.CylinderGeometry( 5, 5, 60, 50, 100, true);
 const pageGridVertexShader = document.getElementById('buttonVertexShader').textContent;
 const pageGridFragmentShader = document.getElementById('buttonFragmentShader').textContent;
 const pageGridMaterial = new THREE.ShaderMaterial( {
@@ -97,9 +77,39 @@ const pageGridMaterial = new THREE.ShaderMaterial( {
     uOpacity:0.0
   }});
 const pageGrid = new THREE.Mesh(pageGridGeometry, pageGridMaterial);
-pageGrid.position.set(0, 0, -120.0)
+pageGrid.position.set(0, 0, -130.0)
 pageGrid.rotation.set(Math.PI/2.0, 0, 0)
 scene.add(pageGrid);
+
+// Project Tabs
+// newProject("FireLive", "/firelive_screen1.jpg", 0, -149)
+
+function newProject(title, imgPath, x, z){
+
+  // const floorGridGeometry = new THREE.PlaneGeometry( 10, 5, 8, 4);
+  // const floorGrid = new THREE.Mesh(floorGridGeometry, pageGridMaterial);
+  // floorGrid.position.set(0, -2.0, -148.0)
+  // floorGrid.rotation.set(Math.PI/2.0, 0, 0)
+  // scene.add(floorGrid);
+
+  const titleP = document.createElement("p");
+  titleP.textContent = title;
+  titleP.id = "project-title";
+  titleP.setAttribute('class', "project-ui");
+  const TitleLabel = new CSS3DObject(titleP);
+  scene.add(TitleLabel);
+  TitleLabel.position.set(x-2, 4, z);
+  TitleLabel.scale.set(0.005, 0.005, 0.005);
+  // const projectI = document.createElement("img");
+  // projectI.src = imgPath;
+  // projectI.id = "project-video";
+  // projectI.setAttribute('class', "project-ui");
+  // const projectImg = new CSS3DObject(projectI);
+  // scene.add(projectImg);
+  // projectImg.position.set(x-1.8, 0.2, z+0.5);
+  // projectImg.scale.set(0.004, 0.004, 0.004);
+  // projectImg.rotation.set(0, Math.PI/16.0, 0);
+}
 
 // Setup sounds
 const audioLoader = new THREE.AudioLoader();
@@ -140,43 +150,87 @@ scene.add( loadingMesh );
 const mask = loadingMesh.getObjectByName("Mask");
 const Windows = loadingMesh.getObjectByName("Windows");
 const FireliveScene = loadingMesh.getObjectByName("FireliveScene");
+const ProjectPlane = loadingMesh.getObjectByName("ProjectPlane");
 Windows.visible = false;
 Windows.frustumCulled = false;
 const loading_anim = play_clip(animLoaded, mixer, "loading", false);
 
 // Pointless Point light
-const pointLight = new THREE.PointLight(0xffffff, 100, 10)
-pointLight.position.set(0, 0, 3)
+const pointLight = new THREE.PointLight(0xffffff, 100, 10);
+pointLight.position.set(0, 0, 3);
 scene.add(pointLight);
 
+// Create clock for animations
+const clock = new THREE.Clock();
+
 // Project lights
-const projectLight = new THREE.PointLight(0xffffff, 0, 15)
-projectLight.position.set(0, 0, -142)
+const projectLight = new THREE.SpotLight(0xffffff, 0, 200, Math.PI/4, 1.0);
 scene.add(projectLight);
+const textureLoader = new THREE.TextureLoader();
+projectLight.map = textureLoader.load("/firelive_screen1.jpg");
+projectLight.position.set(0, 0, -170);
+projectLight.target = ProjectPlane;
+
+// const ambienceLight1 = new THREE.PointLight(0xff0000, 50, 50);
+// scene.add(ambienceLight1);
+// ambienceLight1.position.set(-4, 1, -143);
+// const ambienceLight2 = new THREE.PointLight(0x0000ff, 50, 50);
+// scene.add(ambienceLight2);
+// ambienceLight2.position.set(4, 1, -143);
+// const ambienceLight3 = new THREE.PointLight(0x00ffff, 50, 50);
+// scene.add(ambienceLight3);
+// ambienceLight3.position.set(24, 1, -143);
+
+const raycaster = new THREE.Raycaster();
 
 // Add post-processing
 const composer = new EffectComposer( renderer );
 const renderPass = new RenderPass( scene, camera );
 composer.addPass( renderPass );
+const fxaaPass = new FXAAPass();
+composer.addPass( fxaaPass );
 const resolution = new THREE.Vector2( window.innerWidth, window.innerHeight );
-const bloomPass = new UnrealBloomPass( resolution, 1, 0.4, 0.7 );
+const bloomPass = new UnrealBloomPass( resolution, 0.5, 0.4, 0.7 );
+// const bloomPass = new UnrealBloomPass( resolution, 0.2, 0.1, 0.5 );
 composer.addPass( bloomPass );
+// const bokehPass = new BokehPass( scene, camera, {focus: 9.35,aperture: 0.001,maxblur: 0.1});
+// bokehPass.setSize(window.innerWidth, window.innerHeight)
+// composer.addPass( bokehPass );
+const outputPass = new OutputPass();
+composer.addPass(outputPass);
+
+
+// addEventListener("mousemove", (event) => {
+//   const coords = new THREE.Vector2(event.clientX / renderer.domElement.clientWidth * 2 - 1, -(event.clientY / renderer.domElement.clientHeight * 2 - 1));
+//   raycaster.setFromCamera(coords, camera);
+//   const intersections = raycaster.intersectObjects(scene.children, true);
+//   if (intersections.length > 0){
+//     console.log(intersections[0].distance);
+//     bokehPass.uniforms.focus.value = intersections[0].distance-1.0;
+//   }
+//  })
 
 // Dev only
 let skipIntro = false;
 if (skipIntro){
-  camera.position.set(0, 0, -140);
+  camera.position.set(0, 0, -167);
+  camera.fov = 50.0;
+  camera.updateProjectionMatrix();
   torus.visible = false;
   mask.visible = false;
   Windows.visible = true;
+  projectLight.intensity = 500
+  var elements = document.querySelectorAll('.project-ui');
+  for(var i=0; i<elements.length; i++){
+    elements[i].style.opacity = "100%";
+  }
+  // projectLight.intensity = 200.0;
   pageGrid.material.uniforms.uOpacity = {value : 1.0}
   introDone = true;
   document.querySelector('body').style.height = "7000px";
   window.scrollTo(0, 0);
 }
 
-// Create clock for animations
-const clock = new THREE.Clock();
 
 function animate() {
   requestAnimationFrame(animate);
@@ -274,8 +328,8 @@ function enter(){
                 });
 
                 gsap.to(projectLight, {
-                  intensity: 2,
-                  delay:2.0,
+                  intensity: 500,
+                  delay:3,
                   duration: 5,
                   ease: "power2.inOut",
                 });
@@ -288,14 +342,17 @@ function enter(){
                 });
                 gsap.to(camera, {
                   delay: 2.5,
-                  fov: 75.0,
+                  fov: 50.0,
                   duration: 1.0,
                   ease: "power2.out",
+                  onUpdate: () => {
+                    camera.updateProjectionMatrix();
+                  },
                 });
                 gsap.to(camera.position, {
                   x: 0,
                   y: 0,
-                  z: -140,
+                  z: -167,
                   duration: 5,
                   ease: "power2.inOut",
                 });
