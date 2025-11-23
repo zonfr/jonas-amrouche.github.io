@@ -10,10 +10,15 @@ import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { gsap } from 'gsap/gsap-core';
- 
+
+const pageSize = 7000;
+
 let introDone = false;
 let screenTouched = false;
 let scrollPercent = 0;
+
+let projectLights = [];
+let videosPlayers = [];
 
 // Create 3D renderer
 const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#bg') });
@@ -29,6 +34,22 @@ const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.inner
 camera.position.set(0, 0, 8)
 
 updateSreenSize();
+
+// Setup and play animations.gltf
+const loader = new GLTFLoader();
+const animLoaded = await loader.loadAsync( '/animations.glb' );
+const loadingMesh = animLoaded.scene
+const mixer = new THREE.AnimationMixer( loadingMesh );
+scene.add( loadingMesh );
+const mask = loadingMesh.getObjectByName("Mask");
+const Windows = loadingMesh.getObjectByName("Windows");
+const display1 = loadingMesh.getObjectByName("Display1");
+const display1hover = loadingMesh.getObjectByName("Display1Hover");
+Windows.visible = false;
+Windows.frustumCulled = false;
+const loading_anim = play_clip(animLoaded, mixer, "loading", false);
+
+const textureLoader = new THREE.TextureLoader();
 
 // Enter Text Label
 const enterTextP = document.createElement("p");
@@ -82,31 +103,27 @@ pageGrid.rotation.set(Math.PI/2.0, 0, 0)
 scene.add(pageGrid);
 
 // Project Tabs
-// newProject("FireLive", "/firelive_screen1.jpg", 0, -149)
+newProject("FireLive", "/firelive_screen1.jpg", 0, -180)
+
+const display1Material = new THREE.MeshStandardMaterial( { map: textureLoader.load("/firelive_screen1_holo.jpg"), emissiveMap: textureLoader.load("/firelive_screen_emi.jpg"), emissiveIntensity:0.0, alphaMap: textureLoader.load("/hologram_alpha.jpg"), transparent:true } );
+display1.material = display1Material;
 
 function newProject(title, imgPath, x, z){
-
-  // const floorGridGeometry = new THREE.PlaneGeometry( 10, 5, 8, 4);
-  // const floorGrid = new THREE.Mesh(floorGridGeometry, pageGridMaterial);
-  // floorGrid.position.set(0, -2.0, -148.0)
-  // floorGrid.rotation.set(Math.PI/2.0, 0, 0)
-  // scene.add(floorGrid);
-
-  const titleP = document.createElement("p");
-  titleP.textContent = title;
-  titleP.id = "project-title";
-  titleP.setAttribute('class', "project-ui");
-  const TitleLabel = new CSS3DObject(titleP);
-  scene.add(TitleLabel);
-  TitleLabel.position.set(x-2, 4, z);
-  TitleLabel.scale.set(0.005, 0.005, 0.005);
+  // const titleP = document.createElement("p");
+  // titleP.textContent = title;
+  // titleP.id = "project-title";
+  // titleP.setAttribute('class', "project-ui");
+  // const TitleLabel = new CSS3DObject(titleP);
+  // scene.add(TitleLabel);
+  // TitleLabel.position.set(x-2, 4, z);
+  // TitleLabel.scale.set(0.005, 0.005, 0.005);
   // const projectI = document.createElement("img");
   // projectI.src = imgPath;
   // projectI.id = "project-video";
   // projectI.setAttribute('class', "project-ui");
   // const projectImg = new CSS3DObject(projectI);
   // scene.add(projectImg);
-  // projectImg.position.set(x-1.8, 0.2, z+0.5);
+  // projectImg.position.set(x, 0.2, z);
   // projectImg.scale.set(0.004, 0.004, 0.004);
   // projectImg.rotation.set(0, Math.PI/16.0, 0);
 }
@@ -141,20 +158,6 @@ audioLoader.load( '/intro_sound.ogg', function( buffer ) {
   introSound.setVolume( 1.0 );
 });
 
-// Setup and play animations.gltf
-const loader = new GLTFLoader();
-const animLoaded = await loader.loadAsync( '/animations.glb' );
-const loadingMesh = animLoaded.scene
-const mixer = new THREE.AnimationMixer( loadingMesh );
-scene.add( loadingMesh );
-const mask = loadingMesh.getObjectByName("Mask");
-const Windows = loadingMesh.getObjectByName("Windows");
-const FireliveScene = loadingMesh.getObjectByName("FireliveScene");
-const ProjectPlane = loadingMesh.getObjectByName("ProjectPlane");
-Windows.visible = false;
-Windows.frustumCulled = false;
-const loading_anim = play_clip(animLoaded, mixer, "loading", false);
-
 // Pointless Point light
 const pointLight = new THREE.PointLight(0xffffff, 100, 10);
 pointLight.position.set(0, 0, 3);
@@ -163,23 +166,51 @@ scene.add(pointLight);
 // Create clock for animations
 const clock = new THREE.Clock();
 
-// Project lights
-const projectLight = new THREE.SpotLight(0xffffff, 0, 200, Math.PI/4, 1.0);
-scene.add(projectLight);
-const textureLoader = new THREE.TextureLoader();
-projectLight.map = textureLoader.load("/firelive_screen1.jpg");
-projectLight.position.set(0, 0, -170);
-projectLight.target = ProjectPlane;
+projectLights.push(projectLight("/flashreel.mov", 0, 0, 0))
 
-// const ambienceLight1 = new THREE.PointLight(0xff0000, 50, 50);
+projectLights.push(projectLight("/firelive_screen1_blured.jpg", -20, 0, -20.3))
+
+projectLights.push(projectLight("/eluminscreen1blured.jpg", 20, 0, 20.3))
+
+// Project lights
+function projectLight(texture_path, x_pos, z_pos, x_target) {
+  let texture;
+  if (texture_path.split('.')[texture_path.split('.').length-1] == "mov"){
+    // Create video and play
+    const textureVid = document.createElement("video")
+    textureVid.src = texture_path; // transform gif to mp4
+    textureVid.loop = true;
+    videosPlayers.push(textureVid);
+
+    // Load video texture
+    const videoTexture = new THREE.VideoTexture(textureVid);
+    videoTexture.format = THREE.RGBFormat;
+    videoTexture.minFilter = THREE.NearestFilter;
+    videoTexture.magFilter = THREE.NearestFilter;
+    videoTexture.generateMipmaps = false;
+    texture = videoTexture;
+  }else{
+    texture = textureLoader.load(texture_path);
+  }
+  const projectLight = new THREE.SpotLight(0xffffff, 0, 200, Math.PI/4, 1.0);
+  scene.add(projectLight);
+  projectLight.map = texture;
+  projectLight.position.set(x_pos, z_pos, -170);
+  projectLight.target.position.set(x_target, 0, -177);
+  scene.add(projectLight.target);
+
+  return projectLight
+}
+
+// const ambienceLight1 = new THREE.PointLight(0xff0000, 10, 10);
 // scene.add(ambienceLight1);
-// ambienceLight1.position.set(-4, 1, -143);
-// const ambienceLight2 = new THREE.PointLight(0x0000ff, 50, 50);
+// ambienceLight1.position.set(-21, -0.2, -172);
+// const ambienceLight2 = new THREE.PointLight(0xffffff, 10, 7);
 // scene.add(ambienceLight2);
-// ambienceLight2.position.set(4, 1, -143);
-// const ambienceLight3 = new THREE.PointLight(0x00ffff, 50, 50);
+// ambienceLight2.position.set(0, 2, -172);
+// const ambienceLight3 = new THREE.PointLight(0x00ddbb, 10, 10);
 // scene.add(ambienceLight3);
-// ambienceLight3.position.set(24, 1, -143);
+// ambienceLight3.position.set(21, -0.2, -172);
 
 const raycaster = new THREE.Raycaster();
 
@@ -200,15 +231,23 @@ const outputPass = new OutputPass();
 composer.addPass(outputPass);
 
 
-// addEventListener("mousemove", (event) => {
-//   const coords = new THREE.Vector2(event.clientX / renderer.domElement.clientWidth * 2 - 1, -(event.clientY / renderer.domElement.clientHeight * 2 - 1));
-//   raycaster.setFromCamera(coords, camera);
-//   const intersections = raycaster.intersectObjects(scene.children, true);
-//   if (intersections.length > 0){
-//     console.log(intersections[0].distance);
-//     bokehPass.uniforms.focus.value = intersections[0].distance-1.0;
-//   }
-//  })
+addEventListener("mousemove", (event) => {
+  const coords = new THREE.Vector2(event.clientX / renderer.domElement.clientWidth * 2 - 1, -(event.clientY / renderer.domElement.clientHeight * 2 - 1));
+  raycaster.setFromCamera(coords, camera);
+  const intersections = raycaster.intersectObjects(scene.children, true);
+  if (intersections.length > 0){
+    if (intersections[0].object.name == "Display1"){
+      display1.material.emissiveIntensity = 1.0
+      display1hover.visible = true
+      document.body.style.cursor = "pointer"
+    } else{
+      display1.material.emissiveIntensity = 0.6
+      display1hover.visible = false
+      document.body.style.cursor = "default"
+
+    }
+  }
+ })
 
 // Dev only
 let skipIntro = false;
@@ -218,17 +257,19 @@ if (skipIntro){
   camera.updateProjectionMatrix();
   torus.visible = false;
   mask.visible = false;
+  display1.material.emissiveIntensity = 0.6
   Windows.visible = true;
-  projectLight.intensity = 500
+  for(var i=0; i<projectLights.length; i++){
+    projectLights[i].intensity = 50;
+  }
   var elements = document.querySelectorAll('.project-ui');
   for(var i=0; i<elements.length; i++){
     elements[i].style.opacity = "100%";
   }
-  // projectLight.intensity = 200.0;
   pageGrid.material.uniforms.uOpacity = {value : 1.0}
   introDone = true;
-  document.querySelector('body').style.height = "7000px";
-  window.scrollTo(0, 0);
+  document.querySelector('body').style.height = pageSize.toString() + "px";
+  window.scrollTo(0, pageSize/2 - window.innerHeight/2);
 }
 
 
@@ -251,7 +292,7 @@ function animate() {
 function updateScroll(){
   if (introDone){
     // FireliveScene.position.set(-scrollPercent*0.4, FireliveScene.position.y, FireliveScene.position.z);
-    camera.position.set(scrollPercent*0.4, camera.position.y, camera.position.z);
+    camera.position.set((scrollPercent-50)*0.4, camera.position.y, camera.position.z);
   }
 }
 
@@ -264,9 +305,11 @@ function play_clip(gltfLoad, mixer, clipName, oneShot) {
   return animation
 }
 
+let introTriggered
 function triggerEnter(){
-  if (loading_anim.time < 0.1 && screenTouched){
+  if (loading_anim.time < 0.1 && screenTouched && !introTriggered){
     screenTouched = false
+    introTriggered = true
     enter()
   }
 }
@@ -327,11 +370,17 @@ function enter(){
                   }
                 });
 
-                gsap.to(projectLight, {
-                  intensity: 500,
+                let projectorsObj = { value: 0 };
+                gsap.to(projectorsObj, {
+                  value: 50.0,
                   delay:3,
                   duration: 5,
                   ease: "power2.inOut",
+                  onUpdate: () => {
+                    for(var i=0; i<projectLights.length; i++){
+                        projectLights[i].intensity = projectorsObj.value;
+                    }
+                  }
                 });
                     
                 gsap.to(pageGrid.material.uniforms.uOpacity, {
@@ -363,9 +412,13 @@ function enter(){
                   duration: 4,
                   ease: "power2.inOut",
                   onComplete: () => {
-                      introDone = true;
-                      document.querySelector('body').style.height = "7000px";
-                      window.scrollTo(0, 0);
+                    for(var i=0; i<videosPlayers.length; i++){
+                      videosPlayers[i].play()
+                    }
+                    introDone = true;
+                    display1.material.emissiveIntensity = 0.6
+                    document.querySelector('body').style.height = pageSize.toString() + "px";
+                    window.scrollTo(0, pageSize/2 - window.innerHeight/2);
                   }
                 });
               }
@@ -389,18 +442,15 @@ function updateSreenSize(){
 }
 
 window.addEventListener("click", () => {
-  if (skipIntro){ return; }
-    const context = listener.context;
+  // for(var i=0; i<videosPlayers.length; i++){
+  //   videosPlayers[i].play()
+  // }
 
-    if (context.state === "suspended") {
-        context.resume().then(() => {
-            console.log("AudioContext resumed");
-            screenTouched = true
-            enterTextLabel.visible = false
-        });
-    } else {
-        ambientSound.play();
-    }
+  if (skipIntro){ return; }
+
+  screenTouched = true
+  enterTextLabel.visible = false
+  ambientSound.play();
 });
 
 document.body.onscroll = () => {
