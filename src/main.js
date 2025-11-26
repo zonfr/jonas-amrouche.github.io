@@ -10,18 +10,21 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { gsap } from 'gsap/gsap-core';
 
-const pageSize = 7000;
+// const pageSize = 5000;
 
 let introDone = false;
 let screenTouched = false;
-let waitTransition = false;
-let scrollPercent = 0;
 let volumeMuted = false;
-let projectShown = "";
+
+let scrollPercent = 0.0;
+let scrollTarget = 0.0;
+let previousScrollPercent = 0.0
+let scrollSpeed = 0.0;
 
 let projectLights = [];
 let videosPlayers = [];
 
+let projectShown = "";
 let projects = ["Firelive", "Elumin"]
 
 // Create 3D renderer
@@ -59,6 +62,10 @@ const mixer = new THREE.AnimationMixer( loadingMesh );
 scene.add( loadingMesh );
 const mask = loadingMesh.getObjectByName("Mask");
 const Windows = loadingMesh.getObjectByName("Windows");
+const lighthouse = loadingMesh.getObjectByName("LightHouse")
+const props = loadingMesh.getObjectByName("Props")
+lighthouse.visible = false;
+props.visible = false;
 Windows.visible = false;
 Windows.frustumCulled = false;
 
@@ -186,15 +193,16 @@ function projectLight(texture_path, x_pos, z_pos, x_target) {
 const raycaster = new THREE.Raycaster();
 
 const backContainer = document.getElementById('backContainer')
+const scrollBox = document.getElementById("scroll-box")
 
 // Connect Event listeners
 window.addEventListener('resize', updateSreenSize);
-document.getElementById("bg").addEventListener("mousemove", onMouseMove)
-document.getElementById("bg").addEventListener("click", backgroundClick);
 document.getElementById("toggleSoundButton").addEventListener("click", soundButtonClick);
 document.getElementById("devInfoButton").addEventListener("click", devButtonClick);
 backContainer.addEventListener('click', closeProject)
-document.body.onscroll = updateScrollValue
+scrollBox.addEventListener("mousemove", onMouseMove)
+scrollBox.addEventListener("click", backgroundClick);
+scrollBox.onscroll = updateScrollValue
 
 function onMouseMove(event){
   const coords = new THREE.Vector2(event.clientX / renderer.domElement.clientWidth * 2 - 1, -(event.clientY / renderer.domElement.clientHeight * 2 - 1));
@@ -226,7 +234,7 @@ function updateHover3D(targetName){
 }
 
 // Dev only
-let skipIntro = true;
+let skipIntro = false;
 if (skipIntro){
   camera.position.set(0, 0, -167);
   camera.fov = 50.0;
@@ -235,6 +243,8 @@ if (skipIntro){
   torus.visible = false;
   mask.visible = false;
   Windows.visible = true;
+  lighthouse.visible = true;
+  props.visible = true;
 
   for(var i=0; i<projectLights.length; i++){
     projectLights[i][0].intensity = projectLights[i][1];
@@ -246,8 +256,11 @@ if (skipIntro){
   }
   pageGrid.material.uniforms.uOpacity = {value : 1.0}
   introDone = true;
-  document.querySelector('body').style.height = pageSize.toString() + "px";
-  // window.scrollTo(0, pageSize/2 - window.innerHeight/2);
+  scrollBox.style.overflow = "scroll";
+  scrollTarget = 50.0
+  scrollPercent = 50.0
+  previousScrollPercent = 50.0
+  scrollBox.scrollTo(0, 2000.0)
 }
 
 function animate() {
@@ -260,6 +273,8 @@ function animate() {
   updateScroll();
 
   triggerEnter();
+
+  updateCamScrollSpeed();
   
   // Render scene
   flatRenderer.render(scene, camera);
@@ -268,9 +283,19 @@ function animate() {
 
 animate()
 
+function updateCamScrollSpeed(){
+  if (!introDone){return}
+  const speedDifference = scrollPercent - previousScrollPercent
+  scrollSpeed = THREE.MathUtils.lerp(scrollSpeed, speedDifference, 0.1)
+
+  camera.rotation.set(0, -scrollSpeed*0.1, scrollSpeed*0.1)
+  previousScrollPercent = scrollPercent
+}
+
 function updateScroll(){
   if (introDone){
-    camera.position.set((scrollPercent-50), camera.position.y, camera.position.z);
+    scrollTarget = THREE.MathUtils.lerp(scrollTarget, scrollPercent, 0.1)
+    camera.position.set((scrollTarget-50)*0.8, camera.position.y, camera.position.z);
   }
 }
 
@@ -418,7 +443,7 @@ function devButtonClick(){
 }
 
 function updateScrollValue(){
-  scrollPercent = ((document.documentElement.scrollTop || document.body.scrollTop) / ((document.documentElement.scrollHeight || document.body.scrollHeight) - document.documentElement.clientHeight)) * 100;
+  scrollPercent = ((scrollBox.scrollTop || scrollBox.scrollTop) / ((scrollBox.scrollHeight || scrollBox.scrollHeight) - document.documentElement.clientHeight)) * 100;
 }
 
 let introTriggered = false
@@ -506,6 +531,11 @@ function enter(){
                   z: -167,
                   duration: 5,
                   ease: "power2.inOut",
+                  onComplete: () => {
+                    lighthouse.visible = true;
+                    props.visible = true;
+
+                  }
                 });
                 gsap.to(camera.rotation, {
                   x: 0,
@@ -519,8 +549,11 @@ function enter(){
                     }
                     introDone = true;
                     play_clip(animLoaded, mixer, "floating", false)
-                    document.querySelector('body').style.height = pageSize.toString() + "px";
-                    window.scrollTo(0, pageSize/2 - window.innerHeight/2);
+                    scrollBox.style.overflow = "scroll";
+                    scrollTarget = 50.0
+                    scrollPercent = 50.0
+                    previousScrollPercent = 50.0
+                    scrollBox.scrollTo(0, 2000.0)
                   }
                 });
               }

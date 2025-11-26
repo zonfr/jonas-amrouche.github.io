@@ -6,10 +6,31 @@ canvas {
 
 body {
   background-color: black;
+  scroll-snap-type: y mandatory;
+	overflow-y: scroll;
+  scroll-snap-stop: always;
+  pointer-events: all;
 }
 
 a {
-    color: skyblue;
+  color: skyblue;
+}
+
+#scroll-box {
+  position: fixed;
+  scroll-snap-type: y proximity;
+	overflow: hidden;
+  width: 100%;
+  height: 100%;
+  pointer-events:auto;
+}
+
+.scroll-item {
+  position: relative;
+  height: 1000px;
+  width: 100%;
+  scroll-snap-align: center;
+  pointer-events: none;
 }
 
 @font-face {
