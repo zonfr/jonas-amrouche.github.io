@@ -159,6 +159,8 @@ projectLights.push([projectLight("/firelive_screen1_blured.jpg", -20, 0, 0), 200
 projectLights.push([projectLight("/elumin_screen_blurred_1.png", 20, 0, 0), 200])
 projectLights.push([projectLight("/firelive_screen1_blured.jpg", -20, 0, -20.3), 500])
 projectLights.push([projectLight("/elumin_screen_blurred_2.png", 20, 0, 20.3), 200])
+projectLights.push([projectLight("/shift_up_screenshot3.png", 40, 0, 40.3), 200])
+projectLights.push([projectLight("/server_meshing_screenshot_1.png", -40, 0, -40.3), 200])
 
 // Project lights
 function projectLight(texture_path, x_pos, z_pos, x_target) {

@@ -33,6 +33,11 @@ a {
   pointer-events: none;
 }
 
+.widget-steam{
+  width: 100%;
+  height: 250px;
+}
+
 @font-face {
   font-family: 'Steps-Mono-Thin';
   src: url('/src/Steps-Mono-Thin.woff2') format('woff2');
