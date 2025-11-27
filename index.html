@@ -73,6 +73,47 @@
       </div>
     </div>
 
+    <div class="project-container" id="ServerMeshing">
+      <h1 class="project-title">Server Meshing technology</h1>
+      <div class="project-text-container" >
+        <p class="project-text">
+          I have recently tried to create a scalable multiplayer-game networking architecture based on the idea of "not much replications, lots of users".
+          <br>
+          I tought that if I could achieve a cool mutliplayer MMO concept without complex replication or persistance,
+          <br>
+          I could have a never before seen number of players connected to a single world.
+          <br><br>
+          Quite a naïve idea, but projects must start somewhere.
+          <br>
+          So I build a simple multiplayer server.
+          <br>
+          Then I built a proxy server to tell players, wich game server to connect to.
+          <br>
+          Then I scraped it and made game servers mesh into each other, the proxy server was now called the "relay" and helped the game servers to connects to each other.
+          <br>
+          Then I tried to secure client - server communication, do to so, I pickled/serialized each data packets.
+          <br>
+          Then I tweaked the relay to balance the player load bewteen servers.
+          <br>
+          Then I decided to add VOIP, at first I used all purpose compression algorithms for the packets transmission which was terrible.
+          <br>
+          To do this more efficiently I had to use Opus, the industry open standards for voice/sound transmission, BUT, 
+          <br>
+          Opus is not natively supported in godot and I can't really port opus code to gdscript, the langage is far too slow.
+          <br>
+          So I forked a C++ godot gdextension github repo that was almsot doing what I needed,
+          <br>
+          and modified/optimized it to get what I wanted in a practical workflow.
+          <br>
+          And then I was done, I got an OVH server to test it, and after tackling numerous bugs it worked !
+          <br>
+          I'm very proud of this project not because not because it led anywhere but because it was a real challenge and even if it took some time it was not that.
+          <br>
+          Maybe one day I'll try to recreate it entirely in low level C++ if there is some performance to retrieve there.
+        </p>
+      </div>
+    </div>
+
     <div class="project-container" id="Elumin">
       <h1 class="project-title">Elumin</h1>
       <div class="project-text-container" >
@@ -150,7 +191,16 @@
         </p>
 
         <br><br>
-        <div class="project-screenshot-container">
+        
+        <div style="display: grid; grid-template-columns: auto auto auto;">
+          <img style="width: 90%; left: 5%;" class="project-screenshot" src="src/bts_1.jpg">
+          <img style="width: 90%; left: 5%;" class="project-screenshot" src="src/bts_2.jpg">
+          <img style="width: 90%; left: 5%;" class="project-screenshot" src="src/bts_3.jpg">
+          <p class="project-italic-infos">Experiment with a synthwave 80s style.</p>
+          <p class="project-italic-infos">Early attempt of a more colorfull approach, it was kind of cool but a bit too alien and more difficult to spatially separate each project scenes.</p>
+          <p class="project-italic-infos" >On the way to final result.</p>
+        </div>
+        <!-- <div class="project-screenshot-container">
           <img class="project-screenshot" src="src/bts_1.jpg">
           <p class="project-italic-infos">Experiment with a synthwave 80s style.</p>
           <br><br>
@@ -159,7 +209,7 @@
           <br><br>
           <img class="project-screenshot" src="src/bts_3.jpg">
           <p class="project-italic-infos" >On the way to final result.</p>
-        </div>
+        </div> -->
         <br><br>
         
         <p class="project-text">
@@ -170,12 +220,16 @@
     </div>
 
     <button id="devInfoButton" class="basicButton">
-      <img class="inner_button_icon" style="top: 17%; right: 30%;" src="src/more_icon.svg">
+      <img class="inner-button" style="top: 17%; right: 30%;" src="src/more_icon.svg">
+    </button>
+
+    <button id="bioButton" style="width: 150px;" class="basicButton">
+      <p class="inner-button inner-button-text">Who are you ?</p>
     </button>
 
     <button id="toggleSoundButton" class="basicButton">
-      <img class="inner_button_icon" style="top: 15.75%; left: 22%; visibility: hidden;" id="muted-icon" src="src/mute_sound_icon.svg">
-      <img class="inner_button_icon" style="top: 16.25%; left: 19.5%;" id="not-muted-icon" src="src/sound_icon.svg">
+      <img class="inner-button" style="top: 15.75%; left: 22%; visibility: hidden;" id="muted-icon" src="src/mute_sound_icon.svg">
+      <img class="inner-button" style="top: 16.25%; left: 19.5%;" id="not-muted-icon" src="src/sound_icon.svg">
     </button>
 
     <p style="visibility: hidden;" id="tunnelVertexShader">

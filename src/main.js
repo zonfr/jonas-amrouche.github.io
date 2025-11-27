@@ -25,7 +25,7 @@ let projectLights = [];
 let videosPlayers = [];
 
 let projectShown = "";
-let projects = ["Firelive", "Elumin"]
+let projects = ["Firelive", "Elumin", "ServerMeshing"]
 
 // Create 3D renderer
 const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#bg') });
@@ -79,6 +79,9 @@ fireliveScreen.material = fireliveScreenMaterial;
 const eluminScreen = loadingMesh.getObjectByName("Elumin");
 const eluminScreenMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/elumin_screenshot2.jpg"), emissive:0xffffff, emissiveMap: textureLoader.load("/hologram_hover.jpg"), emissiveIntensity:0.0, alphaMap: textureLoader.load("/hologram_alpha.jpg"), transparent:true, alphaTest:true } );
 eluminScreen.material = eluminScreenMaterial
+const serverMeshingScreen = loadingMesh.getObjectByName("ServerMeshing");
+const serverMeshingMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/server_meshing_screenshot_2.png"), emissive:0xffffff, emissiveMap: textureLoader.load("/hologram_hover.jpg"), emissiveIntensity:0.0, alphaMap: textureLoader.load("/hologram_alpha.jpg"), transparent:true, alphaTest:true } );
+serverMeshingScreen.material = serverMeshingMaterial;
 
 // Play loading animation
 const loading_anim = play_clip(animLoaded, mixer, "loading", false);
@@ -201,6 +204,7 @@ const scrollBox = document.getElementById("scroll-box")
 window.addEventListener('resize', updateSreenSize);
 document.getElementById("toggleSoundButton").addEventListener("click", soundButtonClick);
 document.getElementById("devInfoButton").addEventListener("click", devButtonClick);
+document.getElementById("bioButton").addEventListener("click", bioButtonClick);
 backContainer.addEventListener('click', closeProject)
 scrollBox.addEventListener("mousemove", onMouseMove)
 scrollBox.addEventListener("click", backgroundClick);
@@ -398,25 +402,25 @@ function projectTranstion(projectName, val){
         backContainer.style.opacity = opacityObj.value.toString() + "%";
       },
       onComplete: () => {
-        updateProjectVisiblity(projectName, val)
+        updateProjectVisiblity(projectName, val === 0.0 ? "hidden" : "visible", val)
       }
     });
   if (val === 100.0){
-    updateProjectVisiblity(projectName, 100.0);
+    updateProjectVisiblity(projectName, "visible", 0.0);
   }
 }
 
 // 100.0 = visible, 0.0 = hidden
-function updateProjectVisiblity(projectName, value){
+function updateProjectVisiblity(projectName, visibility, value){
+
 
   const projectContainer = document.getElementById(projectName);
 
-  const visiblity = value === 0.0 ? "hidden" : "visible"
-  console.log(visiblity)
+  console.log(visibility)
   backContainer.style.opacity = value.toString() + "%"
   projectContainer.style.opacity = value.toString() + "%"
-  backContainer.style.visibility = visiblity;
-  projectContainer.style.visibility = visiblity;
+  backContainer.style.visibility = visibility;
+  projectContainer.style.visibility = visibility;
 }
 
 function soundButtonClick(){
@@ -441,6 +445,14 @@ function devButtonClick(){
     closeProject();
   }else{
     openProject("DevInfos");
+  }
+}
+
+function bioButtonClick(){
+  if (projectShown === "Bio"){
+    closeProject();
+  }else{
+    openProject("Bio");
   }
 }
 
