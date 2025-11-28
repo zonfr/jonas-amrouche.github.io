@@ -5,6 +5,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Notable&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/src/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jonas Amrouche</title>
@@ -12,6 +13,7 @@
   <body>
     <h1 id="loading-text">LOADING...</h1>
     <canvas id="bg"></canvas>
+    
     <div id="scroll-box">
       <div class="scroll-item"></div>
       <div class="scroll-item"></div>
@@ -52,23 +54,6 @@
           It's a VJing app, not as advanced, where you can mess with light, smokes, fire and laser in front of a crowd, it's not really advanced, as it was supposed to be customizable, but it's fun to play.
           <br><br>
           I love live shows, lightning and audio techniques that hyped up a crowd, and I hope I can one day work on something like that.
-        </p>
-      </div>
-    </div>
-
-    <div class="project-container" id="Bio">
-      <h1 class="project-title">About Me</h1>
-      <div class="project-text-container" >
-        <p class="project-text">
-          I'm a <strong>french 21 years old selftaught creative developer</strong> who love to build things.
-          <br><br>
-          I have completed 1 year of IT study before realizing that the rigid academic way of learning was not the right thing for me.
-          <br><br>
-          On the other hand, <strong>I love working in a team</strong> and <strong>finding ways to bring a creative vision to life</strong> through technology.
-          <br><br>
-          I am now searching for a job in <strong>interactive experience, museography or live events</strong>.
-          <br><br>
-          I love <strong>video games</strong>, <strong>stories</strong>, <strong>climbing</strong> and <strong>having a good time with friends</strong>.
         </p>
       </div>
     </div>
@@ -161,14 +146,6 @@
             <p class="project-italic-infos">Island at night</p>
             <p class="project-italic-infos">"The lighthouse"</p>
           </div>
-          <!-- <div class="project-screenshot-container">
-            <img class="project-screenshot" src="src/elumin_screenshot1.png">
-            <p class="project-italic-infos">Island at night</p>
-            <br><br>
-            <img class="project-screenshot" src="src/elumin_screenshot2.png">
-            <p class="project-italic-infos">"The lighthouse"</p>
-            <br><br>
-          </div> -->
         <p class="project-text">
           The project has a steam page, maybe it will be complete some day :
           <br><br>
@@ -179,7 +156,24 @@
       </div>
     </div>
 
-    <div class="project-container" id="DevInfos">
+    <div class="tab-2D-container" id="Bio">
+      <h1 class="project-title">About Me</h1>
+      <div class="project-text-container" >
+        <p class="project-text">
+          I'm a <strong>french 21 years old selftaught creative developer</strong> who love to build things.
+          <br><br>
+          I have completed 1 year of IT study before realizing that the rigid academic way of learning was not the right thing for me.
+          <br><br>
+          On the other hand, <strong>I love working in a team</strong> and <strong>finding ways to bring a creative vision to life</strong> through technology.
+          <br><br>
+          I am now searching for a job in <strong>interactive experience, museography or live events</strong>.
+          <br><br>
+          I love <strong>video games</strong>, <strong>stories</strong>, <strong>climbing</strong> and <strong>having a good time with friends</strong>.
+        </p>
+      </div>
+    </div>
+    
+    <div class="tab-2D-container" id="BehindTheScenes">
       <h1 class="project-title">Behind the scenes</h1>
       <div class="project-text-container" >
         <p class="project-text">
@@ -219,12 +213,12 @@
       </div>
     </div>
 
-    <button id="devInfoButton" class="basicButton">
+    <button id="behindTheScenesButton" class="basicButton">
       <img class="inner-button" style="top: 17%; right: 30%;" src="src/more_icon.svg">
     </button>
 
-    <button id="bioButton" style="width: 150px;" class="basicButton">
-      <p class="inner-button inner-button-text">Who are you ?</p>
+    <button id="bioButton" style="width: 120px;" class="basicButton">
+      <p class="inner-button inner-button-text">About Me</p>
     </button>
 
     <button id="toggleSoundButton" class="basicButton">

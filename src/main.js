@@ -3,11 +3,12 @@ import './style.css'
 import * as THREE from 'three'
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { gsap } from 'gsap/gsap-core';
 
 // const pageSize = 5000;
@@ -16,6 +17,7 @@ let introDone = false;
 let screenTouched = false;
 let volumeMuted = false;
 
+let scrollDisabled = false;
 let scrollPercent = 0.0;
 let scrollTarget = 0.0;
 let previousScrollPercent = 0.0
@@ -25,6 +27,7 @@ let projectLights = [];
 let videosPlayers = [];
 
 let projectShown = "";
+let tabShown = "";
 let projects = ["Firelive", "Elumin", "ServerMeshing"]
 
 // Create 3D renderer
@@ -40,6 +43,110 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 0, 8)
 
+// Create distorsion black hole
+  const distortionShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        time: { value: 0 },
+        sphereRadius: { value: 0.0},
+        sphereCenter: { value: new THREE.Vector3(-0.15, 0.04, 0.0)},
+        eventHorizonRadius: { value: 0.0},
+        gravityStrength: { value: 0.0},
+        // ior: { value: 5.5},
+        resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float time;
+        uniform vec2 resolution;
+        uniform float sphereRadius;
+        uniform vec3 sphereCenter;
+        uniform float eventHorizonRadius; // Inner black circle radius
+        uniform float gravityStrength; // Control distortion intensity
+        varying vec2 vUv;
+
+        void main() {
+          vec2 centeredUv = (vUv - 0.5) * 2.0;
+          centeredUv.x *= resolution.x / resolution.y;
+          
+          // Ray setup
+          vec3 rayOrigin = vec3(0.0, 0.0, -3.0);
+          vec3 rayDir = normalize(vec3(centeredUv, 1.0));
+          
+          // Calculate distance from sphere center in screen space
+          vec2 screenSpaceCenter = sphereCenter.xy;
+          float distToCenter = length(centeredUv - screenSpaceCenter);
+          
+          vec2 finalUv = vUv;
+          
+          // Black hole effect parameters
+          float outerRadius = sphereRadius;
+          float innerRadius = eventHorizonRadius > 0.0 ? eventHorizonRadius : 0.001;
+          
+          // Apply gravitational lensing if within influence radius
+          if (distToCenter < outerRadius) {
+            // Calculate normalized distance (0 at edge, 1 at center)
+            float normalizedDist = 1.0 - (distToCenter / outerRadius);
+            
+            // Smooth falloff for gradual distortion (stronger near center)
+            float distortionFactor = smoothstep(0.0, 1.0, normalizedDist);
+            distortionFactor = pow(distortionFactor, 2.0); // Quadratic falloff
+            
+            // Direction from center to current pixel
+            vec2 toCenter = screenSpaceCenter - centeredUv;
+            vec2 dirToCenter = normalize(toCenter);
+            
+            // Gravitational pull toward center (stronger as you get closer)
+            float pullStrength = distortionFactor * (gravityStrength > 0.0 ? gravityStrength : 0.5);
+            
+            // Add swirl/rotation effect for accretion disk look
+            float angle = atan(toCenter.y, toCenter.x);
+            float rotation = distortionFactor * distortionFactor * 0.5;
+            vec2 rotatedDir = vec2(
+              cos(angle + rotation) * length(toCenter),
+              sin(angle + rotation) * length(toCenter)
+            );
+            
+            // Combine pull and rotation
+            vec2 distortion = dirToCenter * pullStrength * 0.3 + 
+                              (rotatedDir - toCenter) * distortionFactor * 0.2;
+            
+            // Apply distortion in UV space
+            vec2 aspectRatio = vec2(resolution.x / resolution.y, 1.0);
+            finalUv = vUv + distortion / aspectRatio * 0.5;
+            
+            // Create event horizon (pure black)
+            if (distToCenter < innerRadius) {
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+              return;
+            }
+          }
+          
+          // Clamp and sample texture
+          finalUv = clamp(finalUv, 0.0, 1.0);
+          vec4 color = texture2D(tDiffuse, finalUv);
+          
+          // Optional: Add slight darkening near black hole edge
+          if (distToCenter < outerRadius && distToCenter > innerRadius) {
+            float edgeDist = (distToCenter - innerRadius) / (outerRadius - innerRadius);
+            float darken = smoothstep(0.0, 0.5, edgeDist);
+            color.rgb *= mix(0.3, 1.0, darken);
+          }
+          
+          gl_FragColor = color;
+        }
+      `
+    };
+
+const distortionMaterial = new THREE.ShaderMaterial(distortionShader);
+
 // Add post-processing
 const composer = new EffectComposer( renderer );
 const renderPass = new RenderPass( scene, camera );
@@ -49,6 +156,8 @@ composer.addPass( fxaaPass );
 const resolution = new THREE.Vector2( window.innerWidth, window.innerHeight );
 const bloomPass = new UnrealBloomPass( resolution, 0.5, 0.4, 0.7 );
 composer.addPass( bloomPass );
+const shaderPass = new ShaderPass(distortionMaterial);
+composer.addPass( shaderPass );
 const outputPass = new OutputPass();
 composer.addPass(outputPass);
 
@@ -64,6 +173,8 @@ const mask = loadingMesh.getObjectByName("Mask");
 const Windows = loadingMesh.getObjectByName("Windows");
 const lighthouse = loadingMesh.getObjectByName("LightHouse")
 const props = loadingMesh.getObjectByName("Props")
+const starLinks = loadingMesh.getObjectByName("Links")
+starLinks.material.emissiveIntensity = 0.0;
 lighthouse.visible = false;
 props.visible = false;
 Windows.visible = false;
@@ -203,9 +314,9 @@ const scrollBox = document.getElementById("scroll-box")
 // Connect Event listeners
 window.addEventListener('resize', updateSreenSize);
 document.getElementById("toggleSoundButton").addEventListener("click", soundButtonClick);
-document.getElementById("devInfoButton").addEventListener("click", devButtonClick);
+document.getElementById("behindTheScenesButton").addEventListener("click", devButtonClick);
 document.getElementById("bioButton").addEventListener("click", bioButtonClick);
-backContainer.addEventListener('click', closeProject)
+backContainer.addEventListener('click', close2DTabs)
 scrollBox.addEventListener("mousemove", onMouseMove)
 scrollBox.addEventListener("click", backgroundClick);
 scrollBox.onscroll = updateScrollValue
@@ -215,6 +326,8 @@ function onMouseMove(event){
   raycaster.setFromCamera(coords, camera);
   const intersections = raycaster.intersectObjects(scene.children, true);
   if (intersections.length > 0){
+    // const aspect = renderer.domElement.clientWidth / renderer.domElement.clientHeight
+    // distortionMaterial.uniforms.sphereCenter.value = new THREE.Vector3(coords.x * aspect, coords.y, 2.0)
     updateHover3D(intersections[0].object.name);
   }else{
     updateHover3D("")
@@ -245,7 +358,7 @@ if (skipIntro){
   camera.position.set(0, 0, -167);
   camera.fov = 50.0;
   camera.updateProjectionMatrix();
-  play_clip(animLoaded, mixer, "floating", false)
+  play_clip(animLoaded, mixer, "floating", false);
   torus.visible = false;
   mask.visible = false;
   Windows.visible = true;
@@ -260,6 +373,7 @@ if (skipIntro){
   for(var i=0; i<elements.length; i++){
     elements[i].style.opacity = "100%";
   }
+
   pageGrid.material.uniforms.uOpacity = {value : 1.0}
   introDone = true;
   scrollBox.style.overflow = "scroll";
@@ -290,7 +404,7 @@ function animate() {
 animate()
 
 function updateCamScrollSpeed(){
-  if (!introDone){return}
+  if (!introDone && !scrollDisabled){return}
   const speedDifference = scrollPercent - previousScrollPercent
   scrollSpeed = THREE.MathUtils.lerp(scrollSpeed, speedDifference, 0.1)
 
@@ -299,7 +413,7 @@ function updateCamScrollSpeed(){
 }
 
 function updateScroll(){
-  if (introDone){
+  if (introDone && !scrollDisabled){
     scrollTarget = THREE.MathUtils.lerp(scrollTarget, scrollPercent, 0.1)
     camera.position.set((scrollTarget-50)*0.8, camera.position.y, camera.position.z);
   }
@@ -315,6 +429,7 @@ function play_clip(gltfLoad, mixer, clipName, oneShot) {
 }
 
 function updateSreenSize(){
+  distortionMaterial.uniforms.resolution = { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   composer.setSize(window.innerWidth, window.innerHeight)
@@ -344,83 +459,127 @@ function backgroundClick(){
 function raycastClick(raycastedObject){
   for (let i = 0; i < projects.length; i++){
     if (raycastedObject === projects[i]){
-      openProject(projects[i]);
+      toggleProject(projects[i]);
     }
   }
 }
 
-
-function openProject(projectName){
-  closeProject(projectShown);
-  
-  projectTranstion(projectName, 100.0);
-
-  document.querySelector('body').style.overflow = "hidden";
-  document.getElementById('bg').style.pointerEvents= "none";
-
-  const projectTexts = document.getElementsByClassName("project-text-container");
-  for(var i=0; i<projectTexts.length; i++){
-    projectTexts[i].scrollTo(0, 0);
-  }
-
-  projectShown = projectName;
-  updateHover3D("");
-}
-
-function closeProject(){
-  if (projectShown !== ""){
-
-    projectTranstion(projectShown, 0.0);
-
-    document.querySelector('body').style.overflow = "auto";
-    document.getElementById('bg').style.pointerEvents= "all";
-    projectShown = "";
-
+function toggleProject(projectName){
+  if (projectShown === ""){
+    scrollDisabled = true
+    projectTransition(projectName, 1.0)
+    projectShown = projectName
+  }else{
+    projectTransition(projectShown, 0.0)
+    projectShown = ""
   }
 }
 
 // Manage projects tranistions animations
 let tweenProject
-function projectTranstion(projectName, val){
+function projectTransition(projectName, val){
 
-  const projectContainer = document.getElementById(projectName);
+  let obj = { value: val === 1.0 ? 0.0 : 1.0 };
+  tweenProject = gsap.to(obj, {
+    delay: val === 1.0 ? 0.0 : 1.0,
+    value: val,
+    duration: 1.0,
+    ease: "power2.inOut",
+    onUpdate: () => {
+      distortionMaterial.uniforms.sphereRadius.value = obj.value * 7.5; // 0.5
+      distortionMaterial.uniforms.gravityStrength.value = obj.value * 5.0; // 5.0
+    },
+    onComplete: () => {
+      if (val === 1.0){
+        camera.position.set(0, 60, -130)
+      }
+      distortionMaterial.uniforms.sphereRadius.value = 0.0;
+      distortionMaterial.uniforms.gravityStrength.value = 0.0;
+    }
+  });
+  gsap.to(distortionMaterial.uniforms.eventHorizonRadius, {
+    value: val * 3.5,
+    delay: val === 1.0 ? 0.3 : 1.0,
+    duration: 0.7,
+    ease: "power2.inOut",
+  });
+  gsap.to(starLinks.material, {
+    emissiveIntensity: val * 1.0,
+    delay: val === 1.0 ? 1.0 : 0.0,
+    duration: 0.7,
+    ease: "power2.inOut",
+    onComplete: () => {
+      if (val === 0.0){
+        distortionMaterial.uniforms.sphereRadius.value = 7.5;
+        distortionMaterial.uniforms.gravityStrength.value = 5.0;
+        camera.position.set((scrollTarget-50)*0.8, 0, -167)
+        scrollDisabled = false
+      }
+    }
+  });
+}
 
-  if (tweenProject && tweenProject.isActive()){
-    tweenProject.onComplete = () => {
-      projectTranstion(val)
+function open2DTabs(tabName){
+  close2DTabs(tabShown);
+  
+  transition2Dtabs(tabName, 100.0);
+
+  document.querySelector('body').style.overflow = "hidden";
+  document.getElementById('bg').style.pointerEvents= "none";
+
+  tabShown = tabName;
+  updateHover3D("");
+}
+
+function close2DTabs(){
+  if (tabShown !== ""){
+
+    transition2Dtabs(tabShown, 0.0);
+
+    document.querySelector('body').style.overflow = "auto";
+    document.getElementById('bg').style.pointerEvents= "all";
+    tabShown = "";
+  }
+}
+
+// Manage 2D tabs transitions animations
+let tween2Dtabs
+function transition2Dtabs(tabName, val){
+
+  const tab2DContainer = document.getElementById(tabName);
+
+  if (tween2Dtabs && tween2Dtabs.isActive()){
+    tween2Dtabs.onComplete = () => {
+      transition2Dtabs(tabName, val)
     };
   }
 
   let opacityObj = { value: val === 100.0 ? 0.0 : 100.0 };
-  console.log(opacityObj.value)
-  tweenProject = gsap.to(opacityObj, {
-      value: val,
-      duration: 0.3,
-      ease: "power2.inOut",
-      onUpdate: () => {
-        projectContainer.style.opacity = opacityObj.value.toString() + "%";
-        backContainer.style.opacity = opacityObj.value.toString() + "%";
-      },
-      onComplete: () => {
-        updateProjectVisiblity(projectName, val === 0.0 ? "hidden" : "visible", val)
-      }
-    });
+  tween2Dtabs = gsap.to(opacityObj, {
+    value: val,
+    duration: 0.3,
+    ease: "power2.inOut",
+    onUpdate: () => {
+      tab2DContainer.style.opacity = opacityObj.value.toString() + "%";
+      backContainer.style.opacity = opacityObj.value.toString() + "%";
+    },
+    onComplete: () => {
+      update2DTabsVisiblity(tabName, val === 0.0 ? "hidden" : "visible", val)
+    }
+  });
   if (val === 100.0){
-    updateProjectVisiblity(projectName, "visible", 0.0);
+    update2DTabsVisiblity(tabName, "visible", 0.0);
   }
 }
 
-// 100.0 = visible, 0.0 = hidden
-function updateProjectVisiblity(projectName, visibility, value){
+function update2DTabsVisiblity(tabName, visibility, value){
 
+  const tab2DContainer = document.getElementById(tabName);
 
-  const projectContainer = document.getElementById(projectName);
-
-  console.log(visibility)
   backContainer.style.opacity = value.toString() + "%"
-  projectContainer.style.opacity = value.toString() + "%"
+  tab2DContainer.style.opacity = value.toString() + "%"
   backContainer.style.visibility = visibility;
-  projectContainer.style.visibility = visibility;
+  tab2DContainer.style.visibility = visibility;
 }
 
 function soundButtonClick(){
@@ -441,23 +600,25 @@ function soundButtonClick(){
 }
 
 function devButtonClick(){
-  if (projectShown === "DevInfos"){
-    closeProject();
+  if (tabShown === "BehindTheScenes"){
+    close2DTabs();
   }else{
-    openProject("DevInfos");
+    open2DTabs("BehindTheScenes");
   }
 }
 
 function bioButtonClick(){
-  if (projectShown === "Bio"){
-    closeProject();
+  if (tabShown === "Bio"){
+    close2DTabs();
   }else{
-    openProject("Bio");
+    open2DTabs("Bio");
   }
 }
 
 function updateScrollValue(){
-  scrollPercent = ((scrollBox.scrollTop || scrollBox.scrollTop) / ((scrollBox.scrollHeight || scrollBox.scrollHeight) - document.documentElement.clientHeight)) * 100;
+  if (!scrollDisabled){
+    scrollPercent = ((scrollBox.scrollTop || scrollBox.scrollTop) / ((scrollBox.scrollHeight || scrollBox.scrollHeight) - document.documentElement.clientHeight)) * 100;
+  }
 }
 
 let introTriggered = false
