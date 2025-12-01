@@ -1,7 +1,6 @@
 import './style.css'
 
 import * as THREE from 'three'
-import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -10,9 +9,6 @@ import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { gsap } from 'gsap/gsap-core';
-import { lerp, randFloat, randInt } from 'three/src/math/MathUtils.js';
-
-// const pageSize = 5000;
 
 let targetStartLinksRotation = new THREE.Vector3();
 
@@ -31,23 +27,27 @@ let videosPlayers = [];
 
 let projectShown = "";
 let tabShown = "";
-let projects = ["Firelive", "Elumin", "ServerMeshing"]
+let projects = ["Firelive", "Elumin", "ServerMeshing", "Metronim"]
 
 // Create 3D renderer
 const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#bg') });
-
-// Create 2D HTLM renderer
-const flatRenderer = new CSS2DRenderer();
-document.body.appendChild(flatRenderer.domElement);
-flatRenderer.domElement.id = "flat-renderer"
 
 // Create scene and camera
 const scene = new THREE.Scene();
 const cameraSocket = new THREE.Object3D();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000);
-scene.add(cameraSocket)
-cameraSocket.add(camera)
-cameraSocket.position.set(0, 0, 8)
+scene.add(cameraSocket);
+cameraSocket.add(camera);
+cameraSocket.position.set(0, 0, 8);
+
+//TO FIX
+const loadingManager = new THREE.LoadingManager();
+
+loadingManager.onLoad = () => {
+  if (!skipIntro){
+    document.getElementById("enter-text").style.visibility = "visible";
+  }
+}
 
 // Create distorsion black hole
   const distortionShader = {
@@ -55,7 +55,7 @@ cameraSocket.position.set(0, 0, 8)
         tDiffuse: { value: null },
         time: { value: 0 },
         sphereRadius: { value: 0.0},
-        sphereCenter: { value: new THREE.Vector3(-0.15, 0.04, 0.0)},
+        sphereCenter: { value: new THREE.Vector3(0.0, 0.0, 0.0)},
         eventHorizonRadius: { value: 0.0},
         gravityStrength: { value: 0.0},
         // ior: { value: 5.5},
@@ -170,26 +170,26 @@ composer.addPass(outputPass);
 updateSreenSize();
 
 // Setup and play animations.gltf
-const loader = new GLTFLoader();
+const loader = new GLTFLoader(loadingManager);
 const animLoaded = await loader.loadAsync( '/animations.glb' );
 const loadingMesh = animLoaded.scene
 const mixer = new THREE.AnimationMixer( loadingMesh );
 scene.add( loadingMesh );
 const mask = loadingMesh.getObjectByName("Mask");
 const Windows = loadingMesh.getObjectByName("Windows");
-const lighthouse = loadingMesh.getObjectByName("LightHouse")
+// const lighthouse = loadingMesh.getObjectByName("LightHouse")
 const props = loadingMesh.getObjectByName("Props")
 const projectStar = loadingMesh.getObjectByName("ProjectStar")
 projectStar.material.emissiveIntensity = 0.0;
 // const starLinks = loadingMesh.getObjectByName("Links")
 // starLinks.material.emissiveIntensity = 0.0;
-lighthouse.visible = false;
+// lighthouse.visible = false;
 props.visible = false;
 Windows.visible = false;
 Windows.frustumCulled = false;
 
 // Setup texture loader
-const textureLoader = new THREE.TextureLoader();
+const textureLoader = new THREE.TextureLoader(loadingManager);
 
 // Declare projects 3D buttons and assign materials
 const fireliveScreen = loadingMesh.getObjectByName("Firelive");
@@ -201,17 +201,12 @@ eluminScreen.material = eluminScreenMaterial
 const serverMeshingScreen = loadingMesh.getObjectByName("ServerMeshing");
 const serverMeshingMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/server_meshing_screenshot_2.png"), emissive:0xffffff, emissiveMap: textureLoader.load("/hologram_hover.jpg"), emissiveIntensity:0.0, alphaMap: textureLoader.load("/hologram_alpha.jpg"), transparent:true, alphaTest:true } );
 serverMeshingScreen.material = serverMeshingMaterial;
+const metronimScreen = loadingMesh.getObjectByName("Metronim");
+const metronimMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/metronim_screenshot1.jpg"), emissive:0xffffff, emissiveMap: textureLoader.load("/hologram_hover.jpg"), emissiveIntensity:0.0, alphaMap: textureLoader.load("/hologram_alpha.jpg"), transparent:true, alphaTest:true } );
+metronimScreen.material = metronimMaterial;
 
 // Play loading animation
 const loading_anim = play_clip(animLoaded, mixer, "loading", false);
-
-// Enter Text Label
-const enterTextP = document.createElement("p");
-enterTextP.textContent = "CLICK TO ENTER";
-enterTextP.id = "enter-text";
-const enterTextLabel = new CSS2DObject(enterTextP);
-scene.add(enterTextLabel);
-enterTextLabel.position.set(0, -3, 2);
 
 // Create glowy quad-ring
 const geometry = new THREE.RingGeometry( 2, 3, 4 );
@@ -257,7 +252,23 @@ audioLoader.load( '/loading_loop.ogg', function( buffer ) {
   loadingSound.setBuffer( buffer );
   loadingSound.setLoop( true );
   loadingSound.setVolume( 2.0 );
-  loadingSound.play();
+  if (!skipIntro){
+    loadingSound.play();
+  }
+});
+
+// Setup FX sounds
+const blackHoleSound = new THREE.Audio( listener );
+audioLoader.load( '/black_hole_1.ogg', function( buffer ) {
+  blackHoleSound.setBuffer( buffer );
+  blackHoleSound.setLoop( false );
+  blackHoleSound.setVolume( 1.0 );
+});
+const reverseBlackHoleSound = new THREE.Audio( listener );
+audioLoader.load( '/black_hole_2.ogg', function( buffer ) {
+  reverseBlackHoleSound.setBuffer( buffer );
+  reverseBlackHoleSound.setLoop( false );
+  reverseBlackHoleSound.setVolume( 1.0 );
 });
 
 // Setup intro sound
@@ -276,16 +287,16 @@ scene.add(pointLight);
 // Create clock for animations
 const clock = new THREE.Clock();
 
-projectLights.push([projectLight("/flashreel.webm", 0, 0, 0), 100])
-projectLights.push([projectLight("/firelive_screen1_blured.jpg", -20, 0, 0), 200])
-projectLights.push([projectLight("/elumin_screen_blurred_1.png", 20, 0, 0), 200])
-projectLights.push([projectLight("/firelive_screen1_blured.jpg", -20, 0, -20.3), 500])
-projectLights.push([projectLight("/elumin_screen_blurred_2.png", 20, 0, 20.3), 200])
-projectLights.push([projectLight("/shift_up_screenshot3.png", 40, 0, 40.3), 200])
-projectLights.push([projectLight("/server_meshing_screenshot_1.png", -40, 0, -40.3), 200])
+projectLights.push([projectLight("/flashreel.webm", 0, 0), 100])
+projectLights.push([projectLight("/firelive_screen1_blured.jpg", -20, 0), 200])
+projectLights.push([projectLight("/elumin_screen_blurred_1.png", 20, 0), 200])
+projectLights.push([projectLight("/firelive_screen1_blured.jpg", -20, -20.3), 500])
+projectLights.push([projectLight("/elumin_screen_blurred_2.png", 20, 20.3), 200])
+projectLights.push([projectLight("/metronim_screenshot4.jpg", 40, 40.3), 200])
+projectLights.push([projectLight("/server_meshing_screenshot_1.png", -40, -40.3), 200])
 
 // Project lights
-function projectLight(texture_path, x_pos, z_pos, x_target) {
+function projectLight(texture_path, x_pos, x_target) {
   let texture;
   if (texture_path.split('.')[texture_path.split('.').length-1] == "webm"){
     // Create video and play
@@ -307,7 +318,7 @@ function projectLight(texture_path, x_pos, z_pos, x_target) {
   const projectLight = new THREE.SpotLight(0xffffff, 0, 200, Math.PI/4, 1.0);
   scene.add(projectLight);
   projectLight.map = texture;
-  projectLight.position.set(x_pos, z_pos, -170);
+  projectLight.position.set(x_pos, 0, -170);
   projectLight.target.position.set(x_target, 0, -177);
   scene.add(projectLight.target);
 
@@ -317,7 +328,7 @@ function projectLight(texture_path, x_pos, z_pos, x_target) {
 const raycaster = new THREE.Raycaster();
 
 const tab2DBackContainer = document.getElementById('tab2DBackContainer')
-const projectBackContainer = document.getElementById('projectBackContainer')
+const projectContainers = document.getElementsByClassName('project-container')
 const scrollBox = document.getElementById("scroll-box")
 
 // Connect Event listeners
@@ -325,8 +336,12 @@ window.addEventListener('resize', updateSreenSize);
 document.getElementById("toggleSoundButton").addEventListener("click", soundButtonClick);
 document.getElementById("behindTheScenesButton").addEventListener("click", devButtonClick);
 document.getElementById("bioButton").addEventListener("click", bioButtonClick);
+for (let i = 0; i< projectContainers.length; i++){
+  projectContainers[i].addEventListener("mousemove", onMouseMove)
+}
 tab2DBackContainer.addEventListener('click', close2DTabs)
 scrollBox.addEventListener("mousemove", onMouseMove)
+// projectContainer.addEventListener("mousemove", onMouseMove)
 scrollBox.addEventListener("click", backgroundClick);
 scrollBox.onscroll = updateScrollValue
 
@@ -350,7 +365,7 @@ function updateHover3D(targetName){
     const screen = loadingMesh.getObjectByName(projects[i]);
     screen.material.emissiveIntensity = 0.0;
 
-    if (targetName === projects[i]){
+    if (targetName === projects[i] && !inProjectTransition){
       screen.material.emissiveIntensity = 1.0;
       document.body.style.cursor = "pointer";
       hoveringSomething = true
@@ -373,8 +388,10 @@ if (skipIntro){
   mask.visible = false;
   Windows.visible = true;
   tunnelMesh.visible = false;
-  lighthouse.visible = true;
+  // lighthouse.visible = true;
   props.visible = true;
+  ambientSound.setVolume(2.0)
+  ambientSound.play();
 
   for(var i=0; i<projectLights.length; i++){
     projectLights[i][0].intensity = projectLights[i][1];
@@ -388,11 +405,10 @@ if (skipIntro){
   tunnelMesh.material.uniforms.uOpacity = {value : 1.0}
   introDone = true;
   scrollBox.style.overflow = "scroll";
-  scrollTarget = 50.0
-  scrollPercent = 50.0
-  previousScrollPercent = 50.0
-  scrollBox.scrollTo(0, 2100.0)
+  scrollBox.scrollTop = 750.0
 }
+
+updateSreenSize();
 
 function animate() {
   requestAnimationFrame(animate);
@@ -410,7 +426,6 @@ function animate() {
   updateProjectRotation();
   
   // Render scene
-  flatRenderer.render(scene, camera);
   composer.render();
 }
 
@@ -421,7 +436,7 @@ function updateCamScrollSpeed(){
   const speedDifference = scrollPercent - previousScrollPercent
   scrollSpeed = THREE.MathUtils.lerp(scrollSpeed, speedDifference, 0.1)
 
-  cameraSocket.rotation.set(0, -scrollSpeed*0.1, scrollSpeed*0.1)
+  cameraSocket.rotation.set(0, -scrollSpeed*0.1, 0.0)
   previousScrollPercent = scrollPercent
 }
 
@@ -435,8 +450,10 @@ function updateProjectRotation(){
 
 function updateScroll(){
   if (introDone && !scrollDisabled){
-    scrollTarget = THREE.MathUtils.lerp(scrollTarget, scrollPercent, 0.1)
-    cameraSocket.position.set((scrollTarget-50)*0.8, cameraSocket.position.y, cameraSocket.position.z);
+
+    const scrollPosition = Math.round(((scrollPercent-50)*0.8)/20.0) * 20.0
+    scrollTarget = THREE.MathUtils.lerp(scrollTarget, scrollPosition, 0.1)
+    cameraSocket.position.set(scrollTarget, cameraSocket.position.y, cameraSocket.position.z);
   }
 }
 
@@ -454,10 +471,13 @@ function updateSreenSize(){
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   composer.setSize(window.innerWidth, window.innerHeight)
-  flatRenderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   camera.position.set(0, 0, window.innerHeight / window.innerWidth * 8.0 - 4.0)
+  // for(var i=0; i<projectLights.length; i++){
+  //   const pos = projectLights[i][0].position
+  //   projectLights[i][0].position.set(pos.x, pos.y, -170 + window.innerHeight / window.innerWidth * 8.0 - 4.0)
+  // }
 }
 
 function backgroundClick(){
@@ -482,7 +502,7 @@ function backgroundClick(){
 
   // Intro Play
   screenTouched = true
-  enterTextLabel.visible = false
+  document.getElementById("enter-text").style.visibility = "hidden"
   ambientSound.play();
 }
 
@@ -500,9 +520,12 @@ function toggleProject(projectName){
       scrollDisabled = true
       projectTransition(projectName, 1.0)
       projectShown = projectName
+      scrollBox.style.overflow = "hidden";
+      updateHover3D("")
     }else{
       projectTransition(projectShown, 0.0)
       projectShown = ""
+      updateHover3D("")
     }
   }
 }
@@ -511,7 +534,6 @@ function toggleProject(projectName){
 let inProjectTransition = false
 function projectTransition(tabName, val){
   inProjectTransition = true
-  console.log(tabName)
   
   const projectContainer = document.getElementById(tabName);
 
@@ -521,6 +543,13 @@ function projectTransition(tabName, val){
     value: val,
     duration: 1.0,
     ease: "power2.inOut",
+    onStart:() =>{
+      if (val === 1.0){
+        blackHoleSound.play();
+      }else{
+        reverseBlackHoleSound.play();
+      }
+    },
     onUpdate: () => {
       distortionMaterial.uniforms.sphereRadius.value = obj.value * 7.5; // 0.5
       distortionMaterial.uniforms.gravityStrength.value = obj.value * 5.0; // 5.0
@@ -561,6 +590,7 @@ function projectTransition(tabName, val){
         distortionMaterial.uniforms.gravityStrength.value = 5.0;
         cameraSocket.position.set((scrollTarget-50)*0.8, 0, -167)
         scrollDisabled = false
+        scrollBox.style.overflow = "scroll";
       }else{
         inProjectTransition = false
       }
@@ -574,7 +604,6 @@ function open2DTabs(tabName){
   
   transition2Dtabs(tabName, 100.0);
 
-  document.querySelector('body').style.overflow = "hidden";
   document.getElementById('bg').style.pointerEvents= "none";
 
   tabShown = tabName;
@@ -586,7 +615,6 @@ function close2DTabs(){
 
     transition2Dtabs(tabShown, 0.0);
 
-    document.querySelector('body').style.overflow = "auto";
     document.getElementById('bg').style.pointerEvents= "all";
     tabShown = "";
   }
@@ -637,12 +665,16 @@ function soundButtonClick(){
     ambientSound.setVolume(2.0)
     introSound.setVolume(1.0);
     loadingSound.setVolume(2.0);
+    blackHoleSound.setVolume(1.0);
+    reverseBlackHoleSound.setVolume(1.0);
     document.getElementById("not-muted-icon").style.visibility = "visible";
     document.getElementById("muted-icon").style.visibility = "hidden";
   }else{
     ambientSound.setVolume(0.0);
     introSound.setVolume(0.0);
     loadingSound.setVolume(0.0);
+    blackHoleSound.setVolume(0.0);
+    reverseBlackHoleSound.setVolume(0.0);
     document.getElementById("not-muted-icon").style.visibility = "hidden";
     document.getElementById("muted-icon").style.visibility = "visible";
   }
@@ -759,7 +791,7 @@ function enter(){
                   duration: 5,
                   ease: "power2.inOut",
                   onComplete: () => {
-                    lighthouse.visible = true;
+                    // lighthouse.visible = true;
                     props.visible = true;
 
                   }
@@ -778,10 +810,7 @@ function enter(){
                     play_clip(animLoaded, mixer, "floating", false)
                     scrollBox.style.overflow = "scroll";
                     tunnelMesh.visible = false;
-                    scrollTarget = 50.0
-                    scrollPercent = 50.0
-                    previousScrollPercent = 50.0
-                    scrollBox.scrollTo(0, 2100.0)
+                    scrollBox.scrollTop = 750.0
                   }
                 });
               }
