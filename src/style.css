@@ -281,8 +281,8 @@ a {
     position: fixed;
     filter: drop-shadow(0 0 100px rgb(51, 63, 88));
     width: 80%;
-    height: 80%;
-    top: 12%;
+    height: 100%;
+    top: 20%;
     left: 10%;
     opacity: 0%;
     overflow: visible;
