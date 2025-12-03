@@ -189,18 +189,30 @@ Windows.frustumCulled = false;
 // Setup texture loader
 const textureLoader = new THREE.TextureLoader(loadingManager);
 
+const alphaMap = textureLoader.load("/hologram_alpha.jpg")
+alphaMap.minFilter = THREE.LinearMipMapNearestFilter;
+alphaMap.magFilter = THREE.NearestFilter;
+alphaMap.generateMipmaps = true;
+alphaMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+const hoverMap = textureLoader.load("/hologram_hover.jpg")
+hoverMap.minFilter = THREE.LinearMipMapNearestFilter;
+hoverMap.magFilter = THREE.NearestFilter;
+hoverMap.generateMipmaps = true;
+hoverMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
 // Declare projects 3D buttons and assign materials
 const fireliveScreen = loadingMesh.getObjectByName("Firelive");
-const fireliveScreenMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/firelive_screen_emi.jpg"), emissive:0xffffff, emissiveMap: textureLoader.load("/hologram_hover.jpg"), emissiveIntensity:0.0, alphaMap: textureLoader.load("/hologram_alpha.jpg"), transparent:true, alphaTest:true } );
+const fireliveScreenMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/firelive_screen_emi.jpg"), emissive:0xffffff, emissiveMap: hoverMap, emissiveIntensity:0.0, alphaMap: alphaMap, transparent:true, alphaTest:true } );
 fireliveScreen.material = fireliveScreenMaterial;
 const eluminScreen = loadingMesh.getObjectByName("Elumin");
-const eluminScreenMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/elumin_screenshot2.jpg"), emissive:0xffffff, emissiveMap: textureLoader.load("/hologram_hover.jpg"), emissiveIntensity:0.0, alphaMap: textureLoader.load("/hologram_alpha.jpg"), transparent:true, alphaTest:true } );
+const eluminScreenMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/elumin_screenshot2.jpg"), emissive:0xffffff, emissiveMap: hoverMap, emissiveIntensity:0.0, alphaMap: alphaMap, transparent:true, alphaTest:true } );
 eluminScreen.material = eluminScreenMaterial
 const serverMeshingScreen = loadingMesh.getObjectByName("ServerMeshing");
-const serverMeshingMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/server_meshing_screenshot_1.png"), emissive:0xffffff, emissiveMap: textureLoader.load("/hologram_hover.jpg"), emissiveIntensity:0.0, alphaMap: textureLoader.load("/hologram_alpha.jpg"), transparent:true, alphaTest:true } );
+const serverMeshingMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/server_meshing_screenshot_1.png"), emissive:0xffffff, emissiveMap: hoverMap, emissiveIntensity:0.0, alphaMap: alphaMap, transparent:true, alphaTest:true } );
 serverMeshingScreen.material = serverMeshingMaterial;
 const metronimScreen = loadingMesh.getObjectByName("Metronim");
-const metronimMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/metronim_screenshot1.jpg"), emissive:0xffffff, emissiveMap: textureLoader.load("/hologram_hover.jpg"), emissiveIntensity:0.0, alphaMap: textureLoader.load("/hologram_alpha.jpg"), transparent:true, alphaTest:true } );
+const metronimMaterial = new THREE.MeshStandardMaterial( { map: textureLoader.load("/metronim_screenshot1.jpg"), emissive:0xffffff, emissiveMap: hoverMap, emissiveIntensity:0.0, alphaMap: alphaMap, transparent:true, alphaTest:true } );
 metronimScreen.material = metronimMaterial;
 
 // Play loading animation
@@ -345,13 +357,13 @@ scrollBox.onscroll = updateScrollValue
 
 function onMouseMove(event){
   const coords = new THREE.Vector2(event.clientX / renderer.domElement.clientWidth * 2 - 1, -(event.clientY / renderer.domElement.clientHeight * 2 - 1));
-  targetStartLinksRotation = new THREE.Vector3(-coords.y*0.1, coords.x*0.1, 0.0)
+  targetStartLinksRotation = new THREE.Vector3(-coords.y*0.1, coords.x*0.1, 0.0);
   raycaster.setFromCamera(coords, camera);
   const intersections = raycaster.intersectObjects(scene.children, true);
   if (intersections.length > 0){
     updateHover3D(intersections[0].object.name);
   }else{
-    updateHover3D("")
+    updateHover3D("");
   }
 }
 
@@ -359,7 +371,7 @@ function updateHover3D(targetName){
   let hoveringSomething = false;
   for (let i = 0; i < projects.length; i++){
     const screen = loadingMesh.getObjectByName(projects[i]);
-    screen.material.emissiveIntensity = 0.0;
+    screen.material.emissiveIntensity = 0.2;
 
     if (targetName === projects[i] && !inProjectTransition){
       screen.material.emissiveIntensity = 1.0;
@@ -463,12 +475,15 @@ function play_clip(gltfLoad, mixer, clipName, oneShot) {
 
 function updateSreenSize(){
   distortionMaterial.uniforms.resolution = { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+  console.log(window.innerWidth)
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setPixelRatio(window.devicePixelRatio);
   composer.setSize(window.innerWidth, window.innerHeight)
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   camera.position.set(0, 0, window.innerHeight / window.innerWidth * 8.0 - 4.0)
+  // fxaaPass.uniforms['resolution'].value.set(1 / (window.innerWidth * window.devicePixelRatio), 1 / (window.innerHeight * window.devicePixelRatio));
   // for(var i=0; i<projectLights.length; i++){
   //   const pos = projectLights[i][0].position
   //   projectLights[i][0].position.set(pos.x, pos.y, -170 + window.innerHeight / window.innerWidth * 8.0 - 4.0)
