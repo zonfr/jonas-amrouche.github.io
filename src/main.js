@@ -21,7 +21,6 @@ let scrollPercent = 0.0;
 let scrollTarget = 0.0;
 let previousScrollPercent = 0.0
 let scrollSpeed = 0.0;
-let rotationLerp = 0.0;
 
 let projectLights = [];
 let videosPlayers = [];
@@ -496,7 +495,7 @@ function handleTouchMove(evt) {
 };
 
 // Dev only
-let skipIntro = true;
+let skipIntro = false;
 if (skipIntro){
   cameraSocket.position.set(0, 0, -167);
   camera.fov = 50.0;
@@ -524,6 +523,8 @@ if (skipIntro){
   scrollBox.style.overflow = "scroll";
   scrollBox.scrollTop = 750.0
   scrollBox.scrollLeft = 750.0
+  previousScrollPercent = 50.0
+  scrollPercent = 50.0
 }
 
 updateSreenSize();
@@ -942,6 +943,8 @@ function enter(){
                     tunnelMesh.visible = false;
                     scrollBox.scrollTop = 750.0
                     scrollBox.scrollLeft = 750.0
+                    previousScrollPercent = 50.0
+                    scrollPercent = 50.0
                   }
                 });
               }
