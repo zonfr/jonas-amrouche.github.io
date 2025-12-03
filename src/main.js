@@ -397,6 +397,10 @@ const tab2DBackContainer = document.getElementById('tab2DBackContainer')
 const projectContainers = document.getElementsByClassName('project-container')
 const scrollBox = document.getElementById("scroll-box")
 const backButton = document.getElementById("backButton")
+const metronimMoreButton = document.getElementById("metronimMoreButton")
+const fireliveMoreButton = document.getElementById("fireliveMoreButton")
+const eluminMoreButton = document.getElementById("eluminMoreButton")
+const serverMeshingMoreButton = document.getElementById("serverMeshingMoreButton")
 
 // Connect Event listeners
 window.addEventListener('resize', updateSreenSize);
@@ -409,16 +413,16 @@ for (let i = 0; i< projectContainers.length; i++){
 tab2DBackContainer.addEventListener('click', close2DTabs)
 scrollBox.addEventListener("mousemove", onMouseMove)
 backButton.addEventListener("click", closeProject);
-backButton.addEventListener("mouseover", () => {
-  backButton.style.opacity = "90%"
-})
-backButton.addEventListener("mouseout", () => {
-  backButton.style.opacity = "20%"
-})
+backButton.addEventListener("mouseover", () => {backButton.style.opacity = "90%"})
+backButton.addEventListener("mouseout", () => {backButton.style.opacity = "20%"})
 scrollBox.addEventListener("click", backgroundClick);
 scrollBox.addEventListener("scroll", updateScrollValue);
-document.addEventListener('touchstart', handleTouchStart, false);        
-document.addEventListener('touchmove', handleTouchMove, false);
+scrollBox.addEventListener('touchstart', handleTouchStart, false);        
+scrollBox.addEventListener('touchmove', handleTouchMove, false);
+metronimMoreButton.addEventListener("click", (event) => {open2DTabs('MetronimMore');})
+fireliveMoreButton.addEventListener("click", (event) => {open2DTabs('FireliveMore');})
+serverMeshingMoreButton.addEventListener("click", (event) => {open2DTabs('ServerMeshingMore');})
+eluminMoreButton.addEventListener("click", (event) => {open2DTabs('EluminMore');})
 
 let mouseCoords = new THREE.Vector2(0.0, 0.0)
 function onMouseMove(event){
@@ -481,9 +485,9 @@ function handleTouchMove(evt) {
     
     if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
         if ( xDiff > 0 ) {
-            scrollBox.scrollTo(scrollBox.scrollLeft + 500.0, 0)
+            scrollPercent = Math.min(100.0, scrollPercent + 20.0)
         } else {
-            scrollBox.scrollTo(scrollBox.scrollLeft - 500.0, 0)
+            scrollPercent = Math.max(0.0, scrollPercent - 20.0)
         }
     }
     /* reset values */
@@ -728,13 +732,12 @@ function projectTransition(tabName, val){
 
 function open2DTabs(tabName){
   close2DTabs(tabShown);
-  
+  console.log(tabName)
   transition2Dtabs(tabName, 100.0);
 
   document.getElementById('bg').style.pointerEvents= "none";
 
   tabShown = tabName;
-  updateHover3D();
 }
 
 function close2DTabs(){
@@ -825,7 +828,7 @@ function bioButtonClick(){
 }
 
 function updateScrollValue(){
-  if (!scrollDisabled && !scrollBox.scrollLeft){
+  if (!scrollDisabled && scrollBox.scrollTop && window.innerWidth > 768){
     const scrollPercentY = scrollBox.scrollTop / (scrollBox.scrollHeight - document.documentElement.clientHeight) * 100.0;
     scrollPercent = scrollPercentY;
   }
